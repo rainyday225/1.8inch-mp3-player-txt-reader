@@ -2,12 +2,15 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black" />
   <title>MP3 TXT 迷你閱讀器</title>
-  <link id="pwa-manifest" rel="manifest" />
+  <!-- 直接連結實體 manifest.json 與圖示 -->
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" type="image/png" href="./icon.png" />
+  <link rel="apple-touch-icon" href="./icon.png" />
   <style>
     /* ==========================================================================
        1. 核心設計規範：純黑 AMOLED 背景、零動畫、實體硬體觸感
@@ -16,7 +19,6 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      /* 嚴格禁止所有過渡與動畫效果 */
       transition: none !important;
       animation: none !important;
       -webkit-tap-highlight-color: transparent;
@@ -24,7 +26,6 @@
     }
 
     :root {
-      /* 螢幕主題變數 - 預設為牛皮紙色 */
       --screen-bg: #E8DEC8;
       --screen-fg: #2C241B;
       --screen-muted: #6E6152;
@@ -32,12 +33,10 @@
       --screen-highlight-bg: #2C241B;
       --screen-highlight-fg: #E8DEC8;
 
-      /* 排版變數 */
       --reader-font-size: 15px;
       --reader-line-height: 1.45;
     }
 
-    /* 純白主題 */
     [data-theme="white"] {
       --screen-bg: #FFFFFF;
       --screen-fg: #111111;
@@ -47,7 +46,6 @@
       --screen-highlight-fg: #FFFFFF;
     }
 
-    /* 牛皮紙主題 */
     [data-theme="kraft"] {
       --screen-bg: #E8DEC8;
       --screen-fg: #2C241B;
@@ -57,7 +55,6 @@
       --screen-highlight-fg: #E8DEC8;
     }
 
-    /* 夜間主題 */
     [data-theme="night"] {
       --screen-bg: #121212;
       --screen-fg: #A8A8A8;
@@ -70,7 +67,7 @@
     html, body {
       width: 100%;
       height: 100%;
-      background-color: #000000; /* 純 AMOLED 黑 */
+      background-color: #000000;
       color: #CCCCCC;
       font-family: "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
       overflow: hidden;
@@ -78,6 +75,9 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      /* 避開手機頂部劉海與底部導覽列 */
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
     }
 
     /* ==========================================================================
@@ -94,7 +94,6 @@
       background-color: #000000;
     }
 
-    /* 1.8 吋螢幕外框 (模擬經典 MP3 內嵌玻璃邊框) */
     .screen-bezel {
       background-color: #0D0D0D;
       border: 2px solid #242424;
@@ -103,7 +102,6 @@
       box-shadow: inset 0 0 0 1px #000000;
     }
 
-    /* 核心 1.8 吋閱讀小視窗 */
     .mini-screen {
       width: 256px;
       height: 320px;
@@ -117,7 +115,6 @@
       overflow: hidden;
     }
 
-    /* 頂部狀態列 (書名/章節、頁碼、百分比) */
     .status-bar {
       height: 22px;
       min-height: 22px;
@@ -146,7 +143,7 @@
     }
 
     /* ==========================================================================
-       3. 閱讀正文區 (嚴格左對齊、無首行縮排、無兩端對齊空格拉扯)
+       3. 閱讀正文區
        ========================================================================== */
     .reader-viewport {
       flex: 1;
@@ -171,14 +168,13 @@
       overflow: hidden;
     }
 
-    /* 隱藏的排版測量容器 (與 .page-content 尺寸與字體完全一致，用於精準分頁) */
     .measure-box {
       position: fixed;
       top: -9999px;
       left: -9999px;
       visibility: hidden;
-      width: 240px; /* 256px - 2px border - 14px horizontal padding */
-      height: 284px; /* 320px - 2px border - 22px status-bar - 12px vertical padding */
+      width: 240px;
+      height: 284px;
       font-size: var(--reader-font-size);
       line-height: var(--reader-line-height);
       text-align: left;
@@ -191,7 +187,6 @@
       margin: 0;
     }
 
-    /* 螢幕上下半部快速點擊熱區提示 (純視覺無干擾) */
     .tap-zone-top, .tap-zone-bottom {
       position: absolute;
       left: 0;
@@ -203,7 +198,7 @@
     .tap-zone-bottom { bottom: 0; }
 
     /* ==========================================================================
-       4. 螢幕內嵌復古功能選單 (覆蓋於 1.8 吋螢幕內部)
+       4. 螢幕內嵌復古功能選單
        ========================================================================== */
     .screen-overlay {
       position: absolute;
@@ -252,7 +247,6 @@
       font-size: 12px;
     }
 
-    /* 選單列表項目 */
     .menu-item {
       padding: 7px 6px;
       border-bottom: 1px solid var(--screen-border);
@@ -267,7 +261,6 @@
       color: var(--screen-highlight-fg);
     }
 
-    /* 設定控制列 */
     .setting-group {
       padding: 7px 2px;
       border-bottom: 1px solid var(--screen-border);
@@ -300,7 +293,6 @@
       font-weight: bold;
     }
 
-    /* 書籍列表項目 */
     .book-item {
       padding: 6px 4px;
       border-bottom: 1px solid var(--screen-border);
@@ -337,7 +329,6 @@
       color: var(--screen-highlight-fg);
     }
 
-    /* 章節列表項目 */
     .chapter-item {
       padding: 6px 4px;
       border-bottom: 1px dashed var(--screen-border);
@@ -353,7 +344,6 @@
       font-weight: bold;
     }
 
-    /* 進度跳轉滑桿 */
     .jump-range {
       width: 100%;
       margin: 8px 0;
@@ -361,7 +351,7 @@
     }
 
     /* ==========================================================================
-       5. 機身下方：實體 MP3 播放器三鍵橫向按鍵區 (左上一頁 / 中M鍵 / 右下一頁)
+       5. 機身下方：實體 MP3 播放器三鍵橫向按鍵區
        ========================================================================== */
     .hardware-controls {
       margin-top: 28px;
@@ -372,7 +362,6 @@
       gap: 16px;
     }
 
-    /* 手機友好三鍵橫向佈局 */
     .control-bar {
       width: 100%;
       display: flex;
@@ -398,7 +387,6 @@
       touch-action: manipulation;
     }
 
-    /* 按下時的純硬體機械回饋 (無動畫，即時反相變色) */
     .hw-btn:active {
       background-color: #2E2E2E;
       color: #FFFFFF;
@@ -428,7 +416,6 @@
       color: #777777;
     }
 
-    /* 底部快捷功能小鍵 (匯入檔案 / 字體底色) */
     .bottom-dock {
       margin-top: 6px;
       display: flex;
@@ -453,7 +440,6 @@
       color: #FFFFFF;
     }
 
-    /* 隱藏原生檔案選擇器 */
     #file-input {
       display: none;
     }
@@ -461,31 +447,24 @@
 </head>
 <body data-theme="kraft">
 
-  <!-- 隱藏的精準分頁排版測量器 -->
   <div id="measure-box" class="measure-box" aria-hidden="true"></div>
-
-  <!-- 隱藏的 TXT 檔案匯入器 -->
   <input type="file" id="file-input" accept=".txt,text/plain" />
 
   <main class="player-chassis">
-    <!-- 1.8 吋微型螢幕外框 -->
     <div class="screen-bezel">
       <div class="mini-screen" id="mini-screen">
 
-        <!-- 頂部狀態列 -->
         <header class="status-bar">
           <span class="status-title" id="status-title">使用說明與範例</span>
           <span class="status-progress" id="status-progress">1/1 0.0%</span>
         </header>
 
-        <!-- 閱讀正文視口 -->
         <section class="reader-viewport" id="reader-viewport">
           <div class="tap-zone-top" id="tap-prev" title="點擊上半部：上一頁"></div>
           <div class="tap-zone-bottom" id="tap-next" title="點擊下半部：下一頁"></div>
           <div class="page-content" id="page-content">載入中...</div>
         </section>
 
-        <!-- 螢幕內選單 1：主選單 (M 鍵開啟) -->
         <div class="screen-overlay" id="overlay-menu">
           <div class="overlay-header">
             <span>系統選單 [M]</span>
@@ -519,14 +498,12 @@
           </div>
         </div>
 
-        <!-- 螢幕內選單 2：顯示與編碼設定 -->
         <div class="screen-overlay" id="overlay-display">
           <div class="overlay-header">
             <span>顯示與編碼</span>
             <button class="overlay-close-btn" data-close="overlay-display">完成</button>
           </div>
           <div class="overlay-body">
-            <!-- 畫面主題 -->
             <div class="setting-group">
               <div class="setting-label"><span>螢幕底色主題</span></div>
               <div class="btn-row">
@@ -536,7 +513,6 @@
               </div>
             </div>
 
-            <!-- 字體大小 -->
             <div class="setting-group">
               <div class="setting-label">
                 <span>字體大小</span>
@@ -548,7 +524,6 @@
               </div>
             </div>
 
-            <!-- 行距設定 -->
             <div class="setting-group">
               <div class="setting-label">
                 <span>行距緊湊度</span>
@@ -561,7 +536,6 @@
               </div>
             </div>
 
-            <!-- 文字編碼切換 (解決中文亂碼) -->
             <div class="setting-group" style="border-bottom: none;">
               <div class="setting-label">
                 <span>文字編碼 (亂碼時切換)</span>
@@ -576,29 +550,22 @@
           </div>
         </div>
 
-        <!-- 螢幕內選單 3：本地書庫 -->
         <div class="screen-overlay" id="overlay-books">
           <div class="overlay-header">
             <span>本地離線書庫</span>
             <button class="overlay-close-btn" data-close="overlay-books">返回</button>
           </div>
-          <div class="overlay-body" id="book-list-container">
-            <!-- 動態渲染書籍清單 -->
-          </div>
+          <div class="overlay-body" id="book-list-container"></div>
         </div>
 
-        <!-- 螢幕內選單 4：章節目錄 -->
         <div class="screen-overlay" id="overlay-chapters">
           <div class="overlay-header">
             <span id="chapter-count-title">章節目錄</span>
             <button class="overlay-close-btn" data-close="overlay-chapters">返回</button>
           </div>
-          <div class="overlay-body" id="chapter-list-container">
-            <!-- 動態渲染章節清單 -->
-          </div>
+          <div class="overlay-body" id="chapter-list-container"></div>
         </div>
 
-        <!-- 螢幕內選單 5：百分比進度跳轉 -->
         <div class="screen-overlay" id="overlay-jump">
           <div class="overlay-header">
             <span>進度跳轉</span>
@@ -618,7 +585,6 @@
           </div>
         </div>
 
-        <!-- 螢幕內選單 6：離線 PWA 安裝說明 -->
         <div class="screen-overlay" id="overlay-pwa">
           <div class="overlay-header">
             <span>離線桌面版教學</span>
@@ -635,29 +601,24 @@
       </div>
     </div>
 
-    <!-- 機身下方：復古 MP3 三鍵實體按鍵盤 (左上一頁 / 中M鍵 / 右下一頁) -->
     <section class="hardware-controls" aria-label="播放器按鍵區">
       <div class="control-bar">
-        <!-- 左鍵：上一頁 -->
         <button class="hw-btn" id="btn-prev-page" title="上一頁 (左/上方向鍵)">
           <span class="hw-icon">◀</span>
           <span class="hw-sub">上一頁</span>
         </button>
 
-        <!-- 中鍵：M 選單 -->
         <button class="hw-btn hw-btn-menu" id="btn-menu" title="開啟/關閉選單 (M鍵)">
           <span class="hw-icon">M</span>
           <span class="hw-sub">選單</span>
         </button>
 
-        <!-- 右鍵：下一頁 -->
         <button class="hw-btn" id="btn-next-page" title="下一頁 (右/下方向鍵 / 空白鍵)">
           <span class="hw-icon">▶</span>
           <span class="hw-sub">下一頁</span>
         </button>
       </div>
 
-      <!-- 底部快捷功能鍵 -->
       <div class="bottom-dock">
         <button class="dock-btn" id="dock-import">匯入 TXT</button>
         <button class="dock-btn" id="dock-display">字體 / 底色</button>
@@ -666,18 +627,9 @@
   </main>
 
   <script>
-    /**
-     * ==========================================================================
-     * 1.8 吋復古 MP3 離線 TXT 閱讀器 核心引擎
-     * - 零動畫、純離線 IndexedDB 儲存、精準逐頁排版計算、智慧中文編碼偵測
-     * ==========================================================================
-     */
     (function () {
       'use strict';
 
-      /* ------------------------------------------------------------------------
-         預設內建使用說明書 (首次開啟時載入，方便立即體驗 1.8 吋閱讀手感)
-         ------------------------------------------------------------------------ */
       const SAMPLE_BOOK_ID = 'builtin-guide-v1';
       const SAMPLE_BOOK_TITLE = 'MP3閱讀器操作指南';
       const SAMPLE_BOOK_TEXT = [
@@ -694,32 +646,26 @@
         '現在，請按下中央「M」鍵或下方的「匯入 TXT」，載入你自己的小說或文章開始閱讀吧！'
       ].join('\n');
 
-      /* ------------------------------------------------------------------------
-         全域狀態管理
-         ------------------------------------------------------------------------ */
       const state = {
         settings: {
-          theme: 'kraft',     // 'white' | 'kraft' | 'night'
-          fontSize: 15,       // 12 ~ 22 (px)
-          lineHeight: 1.45,   // 1.3 | 1.45 | 1.65
+          theme: 'kraft',
+          fontSize: 15,
+          lineHeight: 1.45,
           currentBookId: SAMPLE_BOOK_ID
         },
         book: {
           id: SAMPLE_BOOK_ID,
           title: SAMPLE_BOOK_TITLE,
-          rawBuffer: null,    // ArrayBuffer (保留原始二進位以便隨時切換編碼)
+          rawBuffer: null,
           encoding: 'utf-8',
           text: SAMPLE_BOOK_TEXT,
-          charOffset: 0       // 當前頁面第一個字元的絕對索引 (調整字體時保持進度不跑偏)
+          charOffset: 0
         },
-        pages: [],            // 分頁索引陣列: [{ start: number, end: number }, ...]
+        pages: [],
         currentPageIdx: 0,
-        chapters: []          // 章節陣列: [{ title: string, offset: number }, ...]
+        chapters: []
       };
 
-      /* ------------------------------------------------------------------------
-         DOM 元素快取
-         ------------------------------------------------------------------------ */
       const dom = {
         body: document.body,
         measureBox: document.getElementById('measure-box'),
@@ -727,7 +673,6 @@
         statusTitle: document.getElementById('status-title'),
         statusProgress: document.getElementById('status-progress'),
         pageContent: document.getElementById('page-content'),
-        // 選單覆蓋層
         overlays: document.querySelectorAll('.screen-overlay'),
         overlayMenu: document.getElementById('overlay-menu'),
         overlayDisplay: document.getElementById('overlay-display'),
@@ -735,11 +680,9 @@
         overlayChapters: document.getElementById('overlay-chapters'),
         overlayJump: document.getElementById('overlay-jump'),
         overlayPwa: document.getElementById('overlay-pwa'),
-        // 設定標籤
         labelFontSize: document.getElementById('label-font-size'),
         labelLineHeight: document.getElementById('label-line-height'),
         labelEncoding: document.getElementById('label-encoding'),
-        // 動態容器
         bookListContainer: document.getElementById('book-list-container'),
         chapterListContainer: document.getElementById('chapter-list-container'),
         chapterCountTitle: document.getElementById('chapter-count-title'),
@@ -747,9 +690,6 @@
         jumpPreviewText: document.getElementById('jump-preview-text')
       };
 
-      /* ------------------------------------------------------------------------
-         離線儲存層：IndexedDB 封裝 (儲存大型 TXT 與閱讀進度)
-         ------------------------------------------------------------------------ */
       const DB_NAME = 'MP3TxtReaderDB';
       const DB_VERSION = 1;
       const STORE_BOOKS = 'books';
@@ -782,7 +722,6 @@
             tx.onerror = () => reject(tx.error);
           });
         } catch (err) {
-          // 降級方案：若無痕模式無法寫入 IndexedDB，嘗試存入 localStorage
           try {
             const fallback = {
               id: bookRecord.id,
@@ -793,7 +732,7 @@
               updatedAt: Date.now()
             };
             localStorage.setItem('mp3_fallback_book', JSON.stringify(fallback));
-          } catch (e) { /* 忽略儲存空間上限 */ }
+          } catch (e) {}
         }
       }
 
@@ -849,13 +788,13 @@
             tx.oncomplete = () => resolve();
             tx.onerror = () => reject(tx.error);
           });
-        } catch (err) { /* ignore */ }
+        } catch (err) {}
       }
 
       function saveSettings() {
         try {
           localStorage.setItem('mp3_reader_settings', JSON.stringify(state.settings));
-        } catch (e) { /* ignore */ }
+        } catch (e) {}
       }
 
       function loadSettings() {
@@ -865,12 +804,9 @@
             const parsed = JSON.parse(raw);
             Object.assign(state.settings, parsed);
           }
-        } catch (e) { /* ignore */ }
+        } catch (e) {}
       }
 
-      /* ------------------------------------------------------------------------
-         智慧中文編碼偵測與文本清理
-         ------------------------------------------------------------------------ */
       function decodeTextBuffer(buffer, forcedEncoding = null) {
         if (!buffer) return { text: state.book.text, encoding: state.book.encoding };
 
@@ -883,24 +819,16 @@
           }
         }
 
-        // 1. 優先嘗試嚴格 UTF-8 解碼 (若有 BOM 或合法 UTF-8 位元組序列則直接採用)
         try {
           const utf8Decoder = new TextDecoder('utf-8', { fatal: true });
           const text = utf8Decoder.decode(buffer);
           return { text: normalizeText(text), encoding: 'utf-8' };
-        } catch (e) {
-          // 非合法 UTF-8，進入簡繁體中文傳統編碼判斷
-        }
+        } catch (e) {}
 
-        // 2. 比較 GBK 與 Big5 的常見字與亂碼率
         let gbkText = '';
         let big5Text = '';
-        try {
-          gbkText = new TextDecoder('gbk', { fatal: false }).decode(buffer);
-        } catch (e) { /* ignore */ }
-        try {
-          big5Text = new TextDecoder('big5', { fatal: false }).decode(buffer);
-        } catch (e) { /* ignore */ }
+        try { gbkText = new TextDecoder('gbk', { fatal: false }).decode(buffer); } catch (e) {}
+        try { big5Text = new TextDecoder('big5', { fatal: false }).decode(buffer); } catch (e) {}
 
         const gbkReplacementCount = (gbkText.match(/\uFFFD/g) || []).length;
         const big5ReplacementCount = (big5Text.match(/\uFFFD/g) || []).length;
@@ -911,43 +839,28 @@
         return { text: normalizeText(gbkText || big5Text), encoding: 'gbk' };
       }
 
-      // 清理多餘空白與首行縮排，保持 MP3 緊湊左對齊風格
       function normalizeText(raw) {
         return raw
           .replace(/\r\n/g, '\n')
           .replace(/\r/g, '\n')
-          // 移除每段開頭的全形/半形空白縮排，避免小螢幕浪費寶貴空間
           .replace(/^[ \t\u3000]+/gm, '')
-          // 將連續三個以上的換行壓縮為兩個換行
           .replace(/\n{3,}/g, '\n\n')
           .trim();
       }
 
-      /* ------------------------------------------------------------------------
-         章節自動解析引擎
-         ------------------------------------------------------------------------ */
       function parseChapters(text) {
         const chapters = [];
-        // 匹配常見中英文章節標題：第X章/節/回/卷、Chapter X、序章、尾聲等
         const chapterRegex = /^(?:第[0-9一二三四五六七八九十百千萬零〇]+[章節回卷部篇集].*|Chapter\s+\d+.*|序章.*|楔子.*|尾聲.*|番外.*)$/gm;
         let match;
         while ((match = chapterRegex.exec(text)) !== null) {
           const title = match[0].trim();
           if (title.length <= 45) {
-            chapters.push({
-              title: title,
-              offset: match.index
-            });
+            chapters.push({ title: title, offset: match.index });
           }
         }
         return chapters;
       }
 
-      /* ------------------------------------------------------------------------
-         核心：1.8 吋微型視窗「零拉扯精準分頁演算法」
-         利用離屏測量子元素，透過二分搜尋精算每一屏能完整容納的最大字元數，
-         確保絕不切斷半行字、也絕不依賴瀏覽器 CSS 多欄分頁的脆弱行為。
-         ------------------------------------------------------------------------ */
       function paginateText() {
         const text = state.book.text || '';
         if (!text.length) {
@@ -957,7 +870,6 @@
         }
 
         const box = dom.measureBox;
-        // 同步當前字體設定至測量盒
         box.style.fontSize = state.settings.fontSize + 'px';
         box.style.lineHeight = String(state.settings.lineHeight);
 
@@ -965,7 +877,6 @@
         const totalLen = text.length;
         const pages = [];
 
-        // 估算單頁最大字元上限，縮小二分搜尋區間以提升大檔案分頁速度
         const charsPerLineEst = Math.floor(240 / (state.settings.fontSize * 0.55));
         const linesPerPageEst = Math.floor(maxHeight / (state.settings.fontSize * state.settings.lineHeight));
         const maxSliceUpperBound = Math.max(40, charsPerLineEst * (linesPerPageEst + 3));
@@ -976,7 +887,6 @@
           let high = Math.min(maxSliceUpperBound, totalLen - pos);
           let bestLen = 1;
 
-          // 二分搜尋找出在 maxHeight 內能塞進的最大字數
           while (low <= high) {
             const mid = (low + high) >> 1;
             box.textContent = text.slice(pos, pos + mid);
@@ -988,7 +898,6 @@
             }
           }
 
-          // 若最後一個字元剛好是換行符，避免下一頁開頭出現無意義的空行
           let nextPos = pos + bestLen;
           if (nextPos < totalLen && text[nextPos] === '\n') {
             nextPos += 1;
@@ -1000,8 +909,6 @@
 
         box.textContent = '';
         state.pages = pages.length ? pages : [{ start: 0, end: 0 }];
-
-        // 根據目前儲存的字元偏移量 (charOffset)，定位到對應頁碼
         syncPageIndexFromOffset();
       }
 
@@ -1018,13 +925,9 @@
         state.currentPageIdx = foundIdx;
       }
 
-      /* ------------------------------------------------------------------------
-         畫面渲染與進度更新
-         ------------------------------------------------------------------------ */
       function renderCurrentPage(shouldPersist = true) {
         if (!state.pages.length) return;
 
-        // 邊界保護
         if (state.currentPageIdx < 0) state.currentPageIdx = 0;
         if (state.currentPageIdx >= state.pages.length) state.currentPageIdx = state.pages.length - 1;
 
@@ -1032,10 +935,8 @@
         const slice = state.book.text.slice(page.start, page.end);
         dom.pageContent.textContent = slice;
 
-        // 更新精確字元偏移量
         state.book.charOffset = page.start;
 
-        // 更新頂部狀態列：優先顯示當前所處章節名，若無章節則顯示書名
         let displayTitle = state.book.title;
         if (state.chapters.length > 0) {
           for (let i = state.chapters.length - 1; i >= 0; i--) {
@@ -1075,9 +976,6 @@
         }, 250);
       }
 
-      /* ------------------------------------------------------------------------
-         翻頁控制
-         ------------------------------------------------------------------------ */
       function nextPage() {
         if (isAnyOverlayOpen()) return;
         if (state.currentPageIdx < state.pages.length - 1) {
@@ -1094,9 +992,6 @@
         }
       }
 
-      /* ------------------------------------------------------------------------
-         主題、字體、行距、編碼套用
-         ------------------------------------------------------------------------ */
       function applyVisualSettings(rePaginate = true) {
         dom.body.setAttribute('data-theme', state.settings.theme);
         document.documentElement.style.setProperty('--reader-font-size', state.settings.fontSize + 'px');
@@ -1106,7 +1001,6 @@
         dom.labelLineHeight.textContent = String(state.settings.lineHeight);
         dom.labelEncoding.textContent = (state.book.encoding || 'utf-8').toUpperCase();
 
-        // 高亮當前選中按鈕
         document.querySelectorAll('[data-set-theme]').forEach(btn => {
           btn.classList.toggle('active', btn.dataset.setTheme === state.settings.theme);
         });
@@ -1124,9 +1018,6 @@
         }
       }
 
-      /* ------------------------------------------------------------------------
-         本地 TXT 檔案匯入與切換
-         ------------------------------------------------------------------------ */
       function handleFileUpload(file) {
         if (!file) return;
         const reader = new FileReader();
@@ -1160,7 +1051,6 @@
 
       function switchEncoding(newEncoding) {
         if (!state.book.rawBuffer) {
-          // 內建說明書無原始 buffer，僅更新標籤
           state.book.encoding = newEncoding;
           applyVisualSettings(false);
           return;
@@ -1173,9 +1063,6 @@
         persistCurrentBookProgress();
       }
 
-      /* ------------------------------------------------------------------------
-         螢幕內嵌選單管理
-         ------------------------------------------------------------------------ */
       function isAnyOverlayOpen() {
         return Array.from(dom.overlays).some(el => el.classList.contains('active'));
       }
@@ -1281,7 +1168,6 @@
           dom.chapterListContainer.appendChild(item);
         });
 
-        // 自動捲動到目前閱讀章節
         setTimeout(() => {
           const activeEl = dom.chapterListContainer.querySelector('.current');
           if (activeEl) activeEl.scrollIntoView({ block: 'center' });
@@ -1309,11 +1195,7 @@
         }[m]));
       }
 
-      /* ------------------------------------------------------------------------
-         事件綁定 (實體按鍵、螢幕觸控、鍵盤方向鍵)
-         ------------------------------------------------------------------------ */
       function bindEvents() {
-        // 機身三鍵實體按鍵 (左上一頁 / 中M鍵 / 右下一頁)
         document.getElementById('btn-prev-page').addEventListener('click', prevPage);
         document.getElementById('btn-next-page').addEventListener('click', nextPage);
         document.getElementById('btn-menu').addEventListener('click', () => {
@@ -1324,11 +1206,9 @@
           }
         });
 
-        // 螢幕上半部 / 下半部快速點擊翻頁
         document.getElementById('tap-prev').addEventListener('click', prevPage);
         document.getElementById('tap-next').addEventListener('click', nextPage);
 
-        // 底部快捷鍵
         document.getElementById('dock-import').addEventListener('click', () => dom.fileInput.click());
         document.getElementById('dock-display').addEventListener('click', () => {
           if (dom.overlayDisplay.classList.contains('active')) {
@@ -1338,7 +1218,6 @@
           }
         });
 
-        // 檔案選擇器變更
         dom.fileInput.addEventListener('change', (e) => {
           if (e.target.files && e.target.files[0]) {
             handleFileUpload(e.target.files[0]);
@@ -1346,7 +1225,6 @@
           }
         });
 
-        // 主選單項目點擊
         document.getElementById('menu-import').addEventListener('click', () => dom.fileInput.click());
         document.getElementById('menu-books').addEventListener('click', async () => {
           await renderBookList();
@@ -1360,20 +1238,17 @@
         document.getElementById('menu-display').addEventListener('click', () => openOverlay(dom.overlayDisplay));
         document.getElementById('menu-pwa').addEventListener('click', () => openOverlay(dom.overlayPwa));
 
-        // 關閉各個子選單按鈕
         document.querySelectorAll('[data-close]').forEach(btn => {
           btn.addEventListener('click', () => {
             const targetId = btn.dataset.close;
             if (targetId === 'overlay-menu') {
               closeAllOverlays();
             } else {
-              // 從子選單返回主選單
               openOverlay(dom.overlayMenu);
             }
           });
         });
 
-        // 主題切換
         document.querySelectorAll('[data-set-theme]').forEach(btn => {
           btn.addEventListener('click', () => {
             state.settings.theme = btn.dataset.setTheme;
@@ -1381,7 +1256,6 @@
           });
         });
 
-        // 字體大小調整 (12px ~ 22px)
         document.getElementById('btn-font-dec').addEventListener('click', () => {
           if (state.settings.fontSize > 12) {
             state.settings.fontSize -= 1;
@@ -1395,7 +1269,6 @@
           }
         });
 
-        // 行距調整
         document.querySelectorAll('[data-set-lh]').forEach(btn => {
           btn.addEventListener('click', () => {
             state.settings.lineHeight = parseFloat(btn.dataset.setLh);
@@ -1403,14 +1276,12 @@
           });
         });
 
-        // 編碼切換
         document.querySelectorAll('[data-set-enc]').forEach(btn => {
           btn.addEventListener('click', () => {
             switchEncoding(btn.dataset.setEnc);
           });
         });
 
-        // 進度跳轉滑桿
         dom.jumpSlider.addEventListener('input', (e) => {
           updateJumpPreview(parseInt(e.target.value, 10));
         });
@@ -1422,7 +1293,6 @@
           renderCurrentPage(true);
         });
 
-        // 鍵盤方向鍵支援 (方便連接藍牙小鍵盤或電腦測試)
         window.addEventListener('keydown', (e) => {
           if (e.key === 'Escape' || e.key.toLowerCase() === 'm') {
             e.preventDefault();
@@ -1442,76 +1312,13 @@
         });
       }
 
-      /* ------------------------------------------------------------------------
-         PWA Manifest 與 離線 Service Worker 單檔自舉註冊
-         ------------------------------------------------------------------------ */
-      function initPWA() {
-        // 1. 動態生成純黑 MP3 圖示 SVG Data URI
-        const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-          <rect width="512" height="512" rx="96" fill="#000000"/>
-          <rect x="116" y="64" width="280" height="230" rx="16" fill="#E8DEC8" stroke="#444444" stroke-width="12"/>
-          <line x1="148" y1="115" x2="364" y2="115" stroke="#2C241B" stroke-width="14"/>
-          <line x1="148" y1="155" x2="340" y2="155" stroke="#2C241B" stroke-width="14"/>
-          <line x1="148" y1="195" x2="364" y2="195" stroke="#2C241B" stroke-width="14"/>
-          <line x1="148" y1="235" x2="290" y2="235" stroke="#2C241B" stroke-width="14"/>
-          <circle cx="256" cy="395" r="54" fill="#1A1A1A" stroke="#444444" stroke-width="10"/>
-          <text x="256" y="405" font-family="sans-serif" font-size="32" font-weight="bold" fill="#CCCCCC" text-anchor="middle">TXT</text>
-        </svg>`;
-        const iconUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(iconSvg);
-
-        const manifestObj = {
-          name: 'MP3 TXT 迷你閱讀器',
-          short_name: 'MP3閱讀器',
-          description: '1.8吋復古MP3介面離線TXT純文字閱讀器',
-          start_url: './',
-          display: 'standalone',
-          background_color: '#000000',
-          theme_color: '#000000',
-          orientation: 'portrait',
-          icons: [
-            { src: iconUrl, sizes: '192x192', type: 'image/svg+xml', purpose: 'any maskable' },
-            { src: iconUrl, sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' }
-          ]
-        };
-
-        const manifestBlob = new Blob([JSON.stringify(manifestObj)], { type: 'application/manifest+json' });
-        const manifestUrl = URL.createObjectURL(manifestBlob);
-        document.getElementById('pwa-manifest').setAttribute('href', manifestUrl);
-
-        // 2. 註冊離線 Service Worker (Cache-First 策略，確保斷網可開啟網頁本體)
+      /* 註冊實體 sw.js 離線快取 */
+      function initServiceWorker() {
         if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.protocol === 'http:')) {
-          const swCode = `
-            const CACHE_NAME = 'mp3-txt-reader-v1';
-            self.addEventListener('install', (e) => {
-              self.skipWaiting();
-              e.waitUntil(
-                caches.open(CACHE_NAME).then((cache) => cache.addAll(['./']))
-              );
-            });
-            self.addEventListener('activate', (e) => {
-              e.waitUntil(self.clients.claim());
-            });
-            self.addEventListener('fetch', (e) => {
-              e.respondWith(
-                caches.match(e.request).then((cached) => {
-                  return cached || fetch(e.request).then((res) => {
-                    const copy = res.clone();
-                    caches.open(CACHE_NAME).then((cache) => cache.put(e.request, copy));
-                    return res;
-                  }).catch(() => cached);
-                })
-              );
-            });
-          `;
-          const swBlob = new Blob([swCode], { type: 'application/javascript' });
-          const swUrl = URL.createObjectURL(swBlob);
-          navigator.serviceWorker.register(swUrl).catch(() => { /* 若在受限預覽環境則靜默略過 */ });
+          navigator.serviceWorker.register('./sw.js').catch(() => {});
         }
       }
 
-      /* ------------------------------------------------------------------------
-         應用程式初始化入口
-         ------------------------------------------------------------------------ */
       async function loadInitialBook(forceSample = false) {
         let loaded = null;
         if (!forceSample && state.settings.currentBookId) {
@@ -1549,7 +1356,7 @@
       window.addEventListener('DOMContentLoaded', async () => {
         loadSettings();
         bindEvents();
-        initPWA();
+        initServiceWorker();
         await loadInitialBook(false);
       });
     })();
