@@ -1,6 +1,6 @@
 {
   "name": "Moon Room",
-  "short_name": "moon-room.io",
+  "short_name": "moon-room",
   "description": "An app that looks like 1.8 inch mp3 player but it is suitable for reading txt ebook.",
   "start_url": "https://rainyday225.github.io/1.8inch-mp3-player-txt-reader/",
   "display": "standalone",
