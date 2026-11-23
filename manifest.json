@@ -9,13 +9,13 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "https://rainyday225.github.io/1.8inch-mp3-player-txt-reader/icon.png",
+      "src": "main/icon.png",
       "sizes": "192x192",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "https://rainyday225.github.io/1.8inch-mp3-player-txt-reader/icon.png",
+      "src": "main/icon.png",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
