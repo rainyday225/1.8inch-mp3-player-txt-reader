@@ -1,7 +1,7 @@
 {
-  "name": "MP3 TXT 迷你閱讀器",
-  "short_name": "MP3閱讀器",
-  "description": "1.8吋復古MP3介面離線TXT純文字閱讀器",
+  "name": "Moon Room",
+  "short_name": "moon-room",
+  "description": "An app that looks like 1.8 inch mp3 player but it is suitable for reading txt ebook.",
   "start_url": "https://rainyday225.github.io/1.8inch-mp3-player-txt-reader/",
   "display": "standalone",
   "background_color": "#000000",
@@ -21,5 +21,9 @@
       "purpose": "any maskable"
     }
   ],
-  "lang": "zh"
+  "lang": "zh",
+  "categories": [
+    "books",
+    "books &amp; reference"
+  ]
 }
