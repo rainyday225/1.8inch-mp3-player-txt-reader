@@ -4,13 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
   <title>MP3 TXT 迷你閱讀器</title>
-  <!-- 直接連結實體 manifest.json 與圖示 -->
-  <link rel="manifest" href="./manifest.json" />
   <link rel="icon" type="image/png" href="./icon.png" />
-  <link rel="apple-touch-icon" href="./icon.png" />
   <style>
     /* ==========================================================================
        1. 核心設計規範：純黑 AMOLED 背景、零動畫、實體硬體觸感
@@ -75,7 +70,7 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      /* 避開手機頂部劉海與底部導覽列 */
+      /* 避開手機頂部狀態列/挖孔與底部手勢條 */
       padding-top: env(safe-area-inset-top);
       padding-bottom: env(safe-area-inset-bottom);
     }
@@ -469,6 +464,7 @@
 <body data-theme="kraft">
 
   <div id="measure-box" class="measure-box" aria-hidden="true"></div>
+  <!-- 網頁端 / 降級備援用的檔案輸入框 -->
   <input type="file" id="file-input" accept=".txt,text/plain" />
   <input type="file" id="progress-input" accept=".json,application/json" />
 
@@ -523,8 +519,8 @@
               <span>字體 / 主題 / 編碼設定</span>
               <span>&gt;</span>
             </div>
-            <div class="menu-item" id="menu-pwa">
-              <span>離線安裝到桌面教學</span>
+            <div class="menu-item" id="menu-about">
+              <span>離線儲存與備份說明</span>
               <span>&gt;</span>
             </div>
           </div>
@@ -617,16 +613,16 @@
           </div>
         </div>
 
-        <div class="screen-overlay" id="overlay-pwa">
+        <div class="screen-overlay" id="overlay-about">
           <div class="overlay-header">
-            <span>離線桌面版教學</span>
-            <button class="overlay-close-btn" data-close="overlay-pwa">返回</button>
+            <span>本機儲存與備份說明</span>
+            <button class="overlay-close-btn" data-close="overlay-about">返回</button>
           </div>
           <div class="overlay-body" style="line-height: 1.5; font-size: 12px;">
-            <p style="margin-bottom: 6px; font-weight: bold;">如何像實體 App 一樣離線使用？</p>
-            <p style="margin-bottom: 6px;">1. <b>Android Chrome / Edge</b>：點擊瀏覽器右上角「⋮」選單，選擇<b>「加到主畫面」</b>或<b>「安裝應用程式」</b>。</p>
-            <p style="margin-bottom: 6px;">2. <b>iPhone Safari</b>：點擊下方「分享」按鈕，選擇<b>「加入主畫面」</b>。</p>
-            <p style="margin-bottom: 6px;">3. 匯入的 TXT 書籍與閱讀進度皆儲存在本機離線資料庫中，關閉網路或開啟飛航模式依然可隨時閱讀，也可透過選單匯出進度備份。</p>
+            <p style="margin-bottom: 6px; font-weight: bold;">完全離線本機運作</p>
+            <p style="margin-bottom: 6px;">1. <b>無需連網</b>：所有匯入的 TXT 書籍與閱讀進度皆儲存在手機本機資料庫中，飛航模式下可隨時閱讀。</p>
+            <p style="margin-bottom: 6px;">2. <b>更換手機或重裝前</b>：建議透過選單中的「匯出目前閱讀進度」，將 `.json` 進度檔儲存或分享備份。</p>
+            <p style="margin-bottom: 6px;">3. <b>編碼偵測</b>：支援自動辨識 UTF-8、GBK 與 Big5 編碼，若檔案前段正常但後段偶有亂碼，可在「顯示與編碼」手動切換。</p>
           </div>
         </div>
 
@@ -673,10 +669,13 @@
         '1. 翻頁操作：點擊螢幕下半部、按右方「▶ 下一頁」鍵，皆可向後翻一頁；點擊螢幕上半部或按左方「◀ 上一頁」則向前翻頁。',
         '2. 系統選單：點擊中央「M 選單」鍵，可匯入本地 TXT 電子書、切換書庫、章節目錄跳轉、進度跳轉，以及調整字體大小與螢幕底色。',
         '第三章 編碼與離線儲存',
-        '匯入任何手機或電腦裡的 .txt 檔案時，系統會自動偵測 UTF-8、GBK 或 Big5 編碼，避免中文亂碼。若遇特殊舊檔案顯示異常，可隨時在「顯示與編碼」選單中手動切換編碼重新解碼。',
+        '匯入任何手機裡的 .txt 檔案時，系統會自動偵測 UTF-8、GBK 或 Big5 編碼，避免中文亂碼。若遇特殊舊檔案顯示異常，可隨時在「顯示與編碼」選單中手動切換編碼重新解碼。',
         '所有匯入的書籍與閱讀位置（精確至字元偏移量）都會自動保存在本機離線資料庫中。即使開啟飛航模式、完全斷網，也能隨時開啟繼續閱讀。',
         '現在，請按下中央「M」鍵或下方的「匯入 TXT」，載入你自己的小說或文章開始閱讀吧！'
       ].join('\n');
+
+      // 僅保留前 512KB 原始位元組供手動切換編碼，避免大型小說佔用過多本機資料庫空間
+      const MAX_RAW_BUFFER_BYTES = 512 * 1024;
 
       const state = {
         settings: {
@@ -695,7 +694,9 @@
         },
         pages: [],
         currentPageIdx: 0,
-        chapters: []
+        chapters: [],
+        isPaginating: false,
+        paginateRunId: 0
       };
 
       const dom = {
@@ -713,7 +714,7 @@
         overlayBooks: document.getElementById('overlay-books'),
         overlayChapters: document.getElementById('overlay-chapters'),
         overlayJump: document.getElementById('overlay-jump'),
-        overlayPwa: document.getElementById('overlay-pwa'),
+        overlayAbout: document.getElementById('overlay-about'),
         labelFontSize: document.getElementById('label-font-size'),
         labelLineHeight: document.getElementById('label-line-height'),
         labelEncoding: document.getElementById('label-encoding'),
@@ -724,8 +725,38 @@
         jumpPreviewText: document.getElementById('jump-preview-text')
       };
 
+      /* ========================================================================
+         Capacitor 原生橋接偵測與輔助函式
+         ======================================================================== */
+      function getCapPlugins() {
+        const cap = window.Capacitor;
+        if (!cap || !cap.Plugins) return {};
+        return cap.Plugins;
+      }
+
+      function base64ToArrayBuffer(base64) {
+        const clean = base64.includes(',') ? base64.split(',')[1] : base64;
+        const binaryString = atob(clean);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        return bytes.buffer;
+      }
+
+      function utf8ToBase64(str) {
+        const bytes = new TextEncoder().encode(str);
+        let binary = '';
+        const chunkSize = 0x8000;
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+          binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+        }
+        return btoa(binary);
+      }
+
       let toastTimer = null;
-      function showToast(msg, duration = 2200) {
+      function showToast(msg, duration = 2400) {
         if (!dom.screenToast) return;
         dom.screenToast.textContent = msg;
         dom.screenToast.classList.add('active');
@@ -735,6 +766,9 @@
         }, duration);
       }
 
+      /* ========================================================================
+         IndexedDB 本機資料庫操作
+         ======================================================================== */
       const DB_NAME = 'MP3TxtReaderDB';
       const DB_VERSION = 1;
       const STORE_BOOKS = 'books';
@@ -855,6 +889,9 @@
         } catch (e) {}
       }
 
+      /* ========================================================================
+         文字編碼偵測與正規化
+         ======================================================================== */
       function decodeTextBuffer(buffer, forcedEncoding = null) {
         if (!buffer) return { text: state.book.text, encoding: state.book.encoding };
 
@@ -909,13 +946,24 @@
         return chapters;
       }
 
-      function paginateText() {
+      /* ========================================================================
+         非同步分批排版計算（避免大本小說造成手機畫面凍結）
+         ======================================================================== */
+      function paginateTextAsync() {
+        const runId = ++state.paginateRunId;
         const text = state.book.text || '';
+
         if (!text.length) {
           state.pages = [{ start: 0, end: 0 }];
           state.currentPageIdx = 0;
-          return;
+          state.isPaginating = false;
+          renderCurrentPage(false);
+          return Promise.resolve();
         }
+
+        state.isPaginating = true;
+        dom.pageContent.textContent = '排版計算中...';
+        dom.statusProgress.textContent = '...';
 
         const box = dom.measureBox;
         box.style.fontSize = state.settings.fontSize + 'px';
@@ -930,34 +978,57 @@
         const maxSliceUpperBound = Math.max(40, charsPerLineEst * (linesPerPageEst + 3));
 
         let pos = 0;
-        while (pos < totalLen) {
-          let low = 1;
-          let high = Math.min(maxSliceUpperBound, totalLen - pos);
-          let bestLen = 1;
 
-          while (low <= high) {
-            const mid = (low + high) >> 1;
-            box.textContent = text.slice(pos, pos + mid);
-            if (box.scrollHeight <= maxHeight) {
-              bestLen = mid;
-              low = mid + 1;
+        return new Promise((resolve) => {
+          function processBatch() {
+            if (runId !== state.paginateRunId) {
+              resolve();
+              return;
+            }
+
+            const batchStart = performance.now();
+            // 每幀最多運算 14ms，保持手機觸控與介面流暢
+            while (pos < totalLen && (performance.now() - batchStart) < 14) {
+              let low = 1;
+              let high = Math.min(maxSliceUpperBound, totalLen - pos);
+              let bestLen = 1;
+
+              while (low <= high) {
+                const mid = (low + high) >> 1;
+                box.textContent = text.slice(pos, pos + mid);
+                if (box.scrollHeight <= maxHeight) {
+                  bestLen = mid;
+                  low = mid + 1;
+                } else {
+                  high = mid - 1;
+                }
+              }
+
+              let nextPos = pos + bestLen;
+              if (nextPos < totalLen && text[nextPos] === '\n') {
+                nextPos += 1;
+              }
+
+              pages.push({ start: pos, end: pos + bestLen });
+              pos = nextPos;
+            }
+
+            if (pos < totalLen) {
+              const pct = Math.min(99, Math.floor((pos / totalLen) * 100));
+              dom.statusProgress.textContent = `計算 ${pct}%`;
+              requestAnimationFrame(processBatch);
             } else {
-              high = mid - 1;
+              box.textContent = '';
+              state.pages = pages.length ? pages : [{ start: 0, end: 0 }];
+              state.isPaginating = false;
+              syncPageIndexFromOffset();
+              renderCurrentPage(false);
+              resolve();
             }
           }
 
-          let nextPos = pos + bestLen;
-          if (nextPos < totalLen && text[nextPos] === '\n') {
-            nextPos += 1;
-          }
-
-          pages.push({ start: pos, end: pos + bestLen });
-          pos = nextPos;
-        }
-
-        box.textContent = '';
-        state.pages = pages.length ? pages : [{ start: 0, end: 0 }];
-        syncPageIndexFromOffset();
+          requestAnimationFrame(processBatch);
+        });
       }
 
       function syncPageIndexFromOffset() {
@@ -974,7 +1045,7 @@
       }
 
       function renderCurrentPage(shouldPersist = true) {
-        if (!state.pages.length) return;
+        if (state.isPaginating || !state.pages.length) return;
 
         if (state.currentPageIdx < 0) state.currentPageIdx = 0;
         if (state.currentPageIdx >= state.pages.length) state.currentPageIdx = state.pages.length - 1;
@@ -1025,9 +1096,90 @@
       }
 
       /* ========================================================================
-         匯出 / 匯入閱讀進度功能
+         原生 + 網頁雙模：匯入 TXT 書籍
          ======================================================================== */
-      function exportReadingProgress() {
+      async function triggerImportTxt() {
+        const { FilePicker } = getCapPlugins();
+        if (FilePicker && typeof FilePicker.pickFiles === 'function') {
+          try {
+            const result = await FilePicker.pickFiles({
+              types: ['text/plain'],
+              limit: 1,
+              readData: true
+            });
+            const picked = result && result.files && result.files[0];
+            if (!picked) return;
+
+            let buffer = null;
+            if (picked.data) {
+              buffer = base64ToArrayBuffer(picked.data);
+            } else if (picked.path) {
+              const { Filesystem } = getCapPlugins();
+              if (Filesystem && typeof Filesystem.readFile === 'function') {
+                const fileRes = await Filesystem.readFile({ path: picked.path });
+                buffer = base64ToArrayBuffer(fileRes.data);
+              }
+            }
+
+            if (!buffer) {
+              showToast('無法讀取檔案內容，請重試');
+              return;
+            }
+
+            await processImportedTxtBuffer(buffer, picked.name || '未命名書籍.txt');
+            return;
+          } catch (err) {
+            // 使用者主動取消選檔時不顯示錯誤
+            if (err && /cancel/i.test(String(err.message || err))) return;
+            // 若外掛執行異常則退回網頁 input
+          }
+        }
+
+        dom.fileInput.click();
+      }
+
+      async function processImportedTxtBuffer(buffer, fileName) {
+        const decoded = decodeTextBuffer(buffer, null);
+        const cleanTitle = fileName.replace(/\.txt$/i, '');
+        const bookId = 'book-' + Date.now();
+        const trimmedRaw = buffer.byteLength > MAX_RAW_BUFFER_BYTES
+          ? buffer.slice(0, MAX_RAW_BUFFER_BYTES)
+          : buffer;
+
+        state.book = {
+          id: bookId,
+          title: cleanTitle,
+          rawBuffer: trimmedRaw,
+          encoding: decoded.encoding,
+          text: decoded.text,
+          charOffset: 0
+        };
+        state.chapters = parseChapters(state.book.text);
+
+        closeAllOverlays();
+        await applyVisualSettings(true);
+        await saveBookToDB({
+          ...state.book,
+          updatedAt: Date.now()
+        });
+        state.settings.currentBookId = bookId;
+        saveSettings();
+        showToast(`已匯入《${cleanTitle}》`);
+      }
+
+      function handleFileUpload(file) {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          await processImportedTxtBuffer(e.target.result, file.name);
+        };
+        reader.readAsArrayBuffer(file);
+      }
+
+      /* ========================================================================
+         原生 + 網頁雙模：匯出 / 匯入閱讀進度
+         ======================================================================== */
+      async function exportReadingProgress() {
         const totalChars = (state.book.text || '').length;
         const offset = Math.max(0, Math.min(totalChars, state.book.charOffset || 0));
         const pct = totalChars > 0 ? ((offset / totalChars) * 100).toFixed(1) : '0.0';
@@ -1054,6 +1206,41 @@
         const safeTitle = (state.book.title || 'reading-progress').replace(/[\\/:*?"<>|]/g, '_');
         const fileName = `${safeTitle}_progress.json`;
 
+        // 1. 優先走 Capacitor Filesystem + Share 原生分享/存檔
+        const { Filesystem, Share } = getCapPlugins();
+        if (Filesystem && typeof Filesystem.writeFile === 'function') {
+          try {
+            const writeRes = await Filesystem.writeFile({
+              path: fileName,
+              data: utf8ToBase64(jsonStr),
+              directory: 'CACHE'
+            });
+
+            if (Share && typeof Share.share === 'function' && writeRes && writeRes.uri) {
+              await Share.share({
+                title: '匯出閱讀進度',
+                text: `《${state.book.title}》閱讀進度 ${pct}%`,
+                url: writeRes.uri,
+                dialogTitle: '儲存或分享閱讀進度檔'
+              });
+              showToast(`已準備匯出進度 (${pct}%)`);
+              return;
+            } else {
+              // 沒有安裝 Share 外掛時，直接存進 Documents 資料夾
+              await Filesystem.writeFile({
+                path: fileName,
+                data: utf8ToBase64(jsonStr),
+                directory: 'DOCUMENTS'
+              });
+              showToast(`已儲存至文件資料夾：${fileName}`);
+              return;
+            }
+          } catch (err) {
+            if (err && /cancel/i.test(String(err.message || err))) return;
+          }
+        }
+
+        // 2. 網頁環境降級方案：Blob 下載
         try {
           const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
           const url = URL.createObjectURL(blob);
@@ -1070,17 +1257,52 @@
           if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(summary)
               .then(() => showToast('已複製進度摘要到剪貼簿'))
-              .catch(() => showToast('匯出失敗，請檢查瀏覽器權限'));
+              .catch(() => showToast('匯出失敗，請檢查儲存權限'));
           } else {
-            showToast('匯出失敗，請檢查瀏覽器權限');
+            showToast('匯出失敗，請檢查儲存權限');
           }
         }
       }
 
-      async function importReadingProgress(file) {
-        if (!file) return;
+      async function triggerImportProgress() {
+        const { FilePicker } = getCapPlugins();
+        if (FilePicker && typeof FilePicker.pickFiles === 'function') {
+          try {
+            const result = await FilePicker.pickFiles({
+              types: ['application/json', 'text/plain'],
+              limit: 1,
+              readData: true
+            });
+            const picked = result && result.files && result.files[0];
+            if (!picked) return;
+
+            let rawText = '';
+            if (picked.data) {
+              const buf = base64ToArrayBuffer(picked.data);
+              rawText = new TextDecoder('utf-8').decode(buf);
+            } else if (picked.path) {
+              const { Filesystem } = getCapPlugins();
+              if (Filesystem && typeof Filesystem.readFile === 'function') {
+                const fileRes = await Filesystem.readFile({ path: picked.path });
+                const buf = base64ToArrayBuffer(fileRes.data);
+                rawText = new TextDecoder('utf-8').decode(buf);
+              }
+            }
+
+            if (rawText) {
+              await applyProgressJsonText(rawText);
+              return;
+            }
+          } catch (err) {
+            if (err && /cancel/i.test(String(err.message || err))) return;
+          }
+        }
+
+        dom.progressInput.click();
+      }
+
+      async function applyProgressJsonText(rawText) {
         try {
-          const rawText = await file.text();
           const data = JSON.parse(rawText);
 
           if (!data || !data.book || typeof data.book.charOffset !== 'number') {
@@ -1127,16 +1349,15 @@
             saveSettings();
             state.chapters = parseChapters(state.book.text);
             closeAllOverlays();
-            applyVisualSettings(true);
+            await applyVisualSettings(true);
 
             const pct = matchedBook.text.length > 0
               ? ((clampedOffset / matchedBook.text.length) * 100).toFixed(1)
               : '0.0';
             showToast(`已還原《${matchedBook.title}》進度 ${pct}%`);
           } else {
-            // 書庫中尚未有這本書時，仍可套用顯示設定並提示使用者匯入對應 TXT
             closeAllOverlays();
-            applyVisualSettings(true);
+            await applyVisualSettings(true);
             showToast(`進度檔為《${targetTitle || '未知書籍'}》(${targetOffset}字)，請先匯入該 TXT`);
           }
         } catch (err) {
@@ -1144,8 +1365,17 @@
         }
       }
 
+      async function importReadingProgress(file) {
+        if (!file) return;
+        const rawText = await file.text();
+        await applyProgressJsonText(rawText);
+      }
+
+      /* ========================================================================
+         翻頁與設定控制
+         ======================================================================== */
       function nextPage() {
-        if (isAnyOverlayOpen()) return;
+        if (isAnyOverlayOpen() || state.isPaginating) return;
         if (state.currentPageIdx < state.pages.length - 1) {
           state.currentPageIdx++;
           renderCurrentPage(true);
@@ -1153,14 +1383,14 @@
       }
 
       function prevPage() {
-        if (isAnyOverlayOpen()) return;
+        if (isAnyOverlayOpen() || state.isPaginating) return;
         if (state.currentPageIdx > 0) {
           state.currentPageIdx--;
           renderCurrentPage(true);
         }
       }
 
-      function applyVisualSettings(rePaginate = true) {
+      async function applyVisualSettings(rePaginate = true) {
         dom.body.setAttribute('data-theme', state.settings.theme);
         document.documentElement.style.setProperty('--reader-font-size', state.settings.fontSize + 'px');
         document.documentElement.style.setProperty('--reader-line-height', String(state.settings.lineHeight));
@@ -1181,54 +1411,22 @@
 
         saveSettings();
         if (rePaginate) {
-          paginateText();
-          renderCurrentPage(false);
+          await paginateTextAsync();
         }
       }
 
-      function handleFileUpload(file) {
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-          const buffer = e.target.result;
-          const decoded = decodeTextBuffer(buffer, null);
-          const cleanTitle = file.name.replace(/\.txt$/i, '');
-          const bookId = 'book-' + Date.now();
-
-          state.book = {
-            id: bookId,
-            title: cleanTitle,
-            rawBuffer: buffer,
-            encoding: decoded.encoding,
-            text: decoded.text,
-            charOffset: 0
-          };
-          state.chapters = parseChapters(state.book.text);
-
-          closeAllOverlays();
-          applyVisualSettings(true);
-          await saveBookToDB({
-            ...state.book,
-            updatedAt: Date.now()
-          });
-          state.settings.currentBookId = bookId;
-          saveSettings();
-          showToast(`已匯入《${cleanTitle}》`);
-        };
-        reader.readAsArrayBuffer(file);
-      }
-
-      function switchEncoding(newEncoding) {
+      async function switchEncoding(newEncoding) {
         if (!state.book.rawBuffer) {
           state.book.encoding = newEncoding;
-          applyVisualSettings(false);
+          await applyVisualSettings(false);
+          showToast('此書籍無原始位元組快取，請重新匯入');
           return;
         }
         const decoded = decodeTextBuffer(state.book.rawBuffer, newEncoding);
         state.book.encoding = decoded.encoding;
         state.book.text = decoded.text;
         state.chapters = parseChapters(state.book.text);
-        applyVisualSettings(true);
+        await applyVisualSettings(true);
         persistCurrentBookProgress();
       }
 
@@ -1280,7 +1478,7 @@
               };
               state.chapters = parseChapters(state.book.text);
               closeAllOverlays();
-              applyVisualSettings(true);
+              await applyVisualSettings(true);
               state.settings.currentBookId = fullBook.id;
               saveSettings();
             }
@@ -1364,6 +1562,24 @@
         }[m]));
       }
 
+      function bindCapacitorHardwareBack() {
+        const { App } = getCapPlugins();
+        if (App && typeof App.addListener === 'function') {
+          App.addListener('backButton', () => {
+            if (isAnyOverlayOpen()) {
+              // 若目前在子選單則退回主選單，若在主選單則關閉選單回到閱讀畫面
+              if (dom.overlayMenu.classList.contains('active')) {
+                closeAllOverlays();
+              } else {
+                openOverlay(dom.overlayMenu);
+              }
+            } else if (typeof App.exitApp === 'function') {
+              App.exitApp();
+            }
+          });
+        }
+      }
+
       function bindEvents() {
         document.getElementById('btn-prev-page').addEventListener('click', prevPage);
         document.getElementById('btn-next-page').addEventListener('click', nextPage);
@@ -1378,7 +1594,7 @@
         document.getElementById('tap-prev').addEventListener('click', prevPage);
         document.getElementById('tap-next').addEventListener('click', nextPage);
 
-        document.getElementById('dock-import').addEventListener('click', () => dom.fileInput.click());
+        document.getElementById('dock-import').addEventListener('click', triggerImportTxt);
         document.getElementById('dock-display').addEventListener('click', () => {
           if (dom.overlayDisplay.classList.contains('active')) {
             closeAllOverlays();
@@ -1401,7 +1617,7 @@
           }
         });
 
-        document.getElementById('menu-import').addEventListener('click', () => dom.fileInput.click());
+        document.getElementById('menu-import').addEventListener('click', triggerImportTxt);
         document.getElementById('menu-books').addEventListener('click', async () => {
           await renderBookList();
           openOverlay(dom.overlayBooks);
@@ -1412,9 +1628,9 @@
         });
         document.getElementById('menu-jump').addEventListener('click', openJumpMenu);
         document.getElementById('menu-export-progress').addEventListener('click', exportReadingProgress);
-        document.getElementById('menu-import-progress').addEventListener('click', () => dom.progressInput.click());
+        document.getElementById('menu-import-progress').addEventListener('click', triggerImportProgress);
         document.getElementById('menu-display').addEventListener('click', () => openOverlay(dom.overlayDisplay));
-        document.getElementById('menu-pwa').addEventListener('click', () => openOverlay(dom.overlayPwa));
+        document.getElementById('menu-about').addEventListener('click', () => openOverlay(dom.overlayAbout));
 
         document.querySelectorAll('[data-close]').forEach(btn => {
           btn.addEventListener('click', () => {
@@ -1488,13 +1704,8 @@
             prevPage();
           }
         });
-      }
 
-      /* 註冊實體 sw.js 離線快取 */
-      function initServiceWorker() {
-        if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.protocol === 'http:')) {
-          navigator.serviceWorker.register('./sw.js').catch(() => {});
-        }
+        bindCapacitorHardwareBack();
       }
 
       async function loadInitialBook(forceSample = false) {
@@ -1528,13 +1739,12 @@
         }
 
         state.chapters = parseChapters(state.book.text);
-        applyVisualSettings(true);
+        await applyVisualSettings(true);
       }
 
       window.addEventListener('DOMContentLoaded', async () => {
         loadSettings();
         bindEvents();
-        initServiceWorker();
         await loadInitialBook(false);
       });
     })();
