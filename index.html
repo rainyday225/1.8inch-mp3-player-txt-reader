@@ -197,6 +197,27 @@
     .tap-zone-top { top: 0; }
     .tap-zone-bottom { bottom: 0; }
 
+    /* 螢幕內簡潔提示列 */
+    .screen-toast {
+      position: absolute;
+      left: 6px;
+      right: 6px;
+      bottom: 6px;
+      z-index: 25;
+      background-color: var(--screen-highlight-bg);
+      color: var(--screen-highlight-fg);
+      border: 1px solid var(--screen-border);
+      padding: 5px 7px;
+      font-size: 11px;
+      line-height: 1.35;
+      border-radius: 2px;
+      display: none;
+      word-break: break-all;
+    }
+    .screen-toast.active {
+      display: block;
+    }
+
     /* ==========================================================================
        4. 螢幕內嵌復古功能選單
        ========================================================================== */
@@ -248,13 +269,13 @@
     }
 
     .menu-item {
-      padding: 7px 6px;
+      padding: 6px 6px;
       border-bottom: 1px solid var(--screen-border);
       display: flex;
       align-items: center;
       justify-content: space-between;
       cursor: pointer;
-      font-size: 13px;
+      font-size: 12.5px;
     }
     .menu-item:active, .menu-item.selected {
       background-color: var(--screen-highlight-bg);
@@ -440,7 +461,7 @@
       color: #FFFFFF;
     }
 
-    #file-input {
+    #file-input, #progress-input {
       display: none;
     }
   </style>
@@ -449,6 +470,7 @@
 
   <div id="measure-box" class="measure-box" aria-hidden="true"></div>
   <input type="file" id="file-input" accept=".txt,text/plain" />
+  <input type="file" id="progress-input" accept=".json,application/json" />
 
   <main class="player-chassis">
     <div class="screen-bezel">
@@ -464,6 +486,8 @@
           <div class="tap-zone-bottom" id="tap-next" title="點擊下半部：下一頁"></div>
           <div class="page-content" id="page-content">載入中...</div>
         </section>
+
+        <div class="screen-toast" id="screen-toast" role="status" aria-live="polite"></div>
 
         <div class="screen-overlay" id="overlay-menu">
           <div class="overlay-header">
@@ -485,6 +509,14 @@
             </div>
             <div class="menu-item" id="menu-jump">
               <span>百分比進度跳轉</span>
+              <span>&gt;</span>
+            </div>
+            <div class="menu-item" id="menu-export-progress">
+              <span>匯出目前閱讀進度</span>
+              <span>&gt;</span>
+            </div>
+            <div class="menu-item" id="menu-import-progress">
+              <span>匯入／還原閱讀進度</span>
               <span>&gt;</span>
             </div>
             <div class="menu-item" id="menu-display">
@@ -594,7 +626,7 @@
             <p style="margin-bottom: 6px; font-weight: bold;">如何像實體 App 一樣離線使用？</p>
             <p style="margin-bottom: 6px;">1. <b>Android Chrome / Edge</b>：點擊瀏覽器右上角「⋮」選單，選擇<b>「加到主畫面」</b>或<b>「安裝應用程式」</b>。</p>
             <p style="margin-bottom: 6px;">2. <b>iPhone Safari</b>：點擊下方「分享」按鈕，選擇<b>「加入主畫面」</b>。</p>
-            <p style="margin-bottom: 6px;">3. 匯入的 TXT 書籍與閱讀進度皆儲存在本機離線資料庫中，關閉網路或開啟飛航模式依然可隨時閱讀。</p>
+            <p style="margin-bottom: 6px;">3. 匯入的 TXT 書籍與閱讀進度皆儲存在本機離線資料庫中，關閉網路或開啟飛航模式依然可隨時閱讀，也可透過選單匯出進度備份。</p>
           </div>
         </div>
 
@@ -670,6 +702,8 @@
         body: document.body,
         measureBox: document.getElementById('measure-box'),
         fileInput: document.getElementById('file-input'),
+        progressInput: document.getElementById('progress-input'),
+        screenToast: document.getElementById('screen-toast'),
         statusTitle: document.getElementById('status-title'),
         statusProgress: document.getElementById('status-progress'),
         pageContent: document.getElementById('page-content'),
@@ -689,6 +723,17 @@
         jumpSlider: document.getElementById('jump-slider'),
         jumpPreviewText: document.getElementById('jump-preview-text')
       };
+
+      let toastTimer = null;
+      function showToast(msg, duration = 2200) {
+        if (!dom.screenToast) return;
+        dom.screenToast.textContent = msg;
+        dom.screenToast.classList.add('active');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+          dom.screenToast.classList.remove('active');
+        }, duration);
+      }
 
       const DB_NAME = 'MP3TxtReaderDB';
       const DB_VERSION = 1;
@@ -755,28 +800,31 @@
         }
       }
 
-      async function getAllBooksMetaFromDB() {
+      async function getAllBooksFullFromDB() {
         try {
           const db = await openDB();
           return new Promise((resolve, reject) => {
             const tx = db.transaction(STORE_BOOKS, 'readonly');
             const req = tx.objectStore(STORE_BOOKS).getAll();
-            req.onsuccess = () => {
-              const list = (req.result || []).map(item => ({
-                id: item.id,
-                title: item.title,
-                charOffset: item.charOffset || 0,
-                totalChars: item.text ? item.text.length : 1,
-                updatedAt: item.updatedAt || 0
-              }));
-              list.sort((a, b) => b.updatedAt - a.updatedAt);
-              resolve(list);
-            };
+            req.onsuccess = () => resolve(req.result || []);
             req.onerror = () => reject(req.error);
           });
         } catch (err) {
           return [];
         }
+      }
+
+      async function getAllBooksMetaFromDB() {
+        const all = await getAllBooksFullFromDB();
+        const list = all.map(item => ({
+          id: item.id,
+          title: item.title,
+          charOffset: item.charOffset || 0,
+          totalChars: item.text ? item.text.length : 1,
+          updatedAt: item.updatedAt || 0
+        }));
+        list.sort((a, b) => b.updatedAt - a.updatedAt);
+        return list;
       }
 
       async function deleteBookFromDB(id) {
@@ -976,6 +1024,126 @@
         }, 250);
       }
 
+      /* ========================================================================
+         匯出 / 匯入閱讀進度功能
+         ======================================================================== */
+      function exportReadingProgress() {
+        const totalChars = (state.book.text || '').length;
+        const offset = Math.max(0, Math.min(totalChars, state.book.charOffset || 0));
+        const pct = totalChars > 0 ? ((offset / totalChars) * 100).toFixed(1) : '0.0';
+
+        const payload = {
+          app: 'MP3-TXT-Mini-Reader',
+          version: 1,
+          exportedAt: new Date().toISOString(),
+          book: {
+            id: state.book.id,
+            title: state.book.title,
+            charOffset: offset,
+            totalChars: totalChars,
+            progressPercent: Number(pct)
+          },
+          settings: {
+            theme: state.settings.theme,
+            fontSize: state.settings.fontSize,
+            lineHeight: state.settings.lineHeight
+          }
+        };
+
+        const jsonStr = JSON.stringify(payload, null, 2);
+        const safeTitle = (state.book.title || 'reading-progress').replace(/[\\/:*?"<>|]/g, '_');
+        const fileName = `${safeTitle}_progress.json`;
+
+        try {
+          const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+          showToast(`已匯出進度 (${pct}%)：${fileName}`);
+        } catch (err) {
+          const summary = `【${state.book.title}】進度 ${pct}% (${offset}/${totalChars} 字元)`;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(summary)
+              .then(() => showToast('已複製進度摘要到剪貼簿'))
+              .catch(() => showToast('匯出失敗，請檢查瀏覽器權限'));
+          } else {
+            showToast('匯出失敗，請檢查瀏覽器權限');
+          }
+        }
+      }
+
+      async function importReadingProgress(file) {
+        if (!file) return;
+        try {
+          const rawText = await file.text();
+          const data = JSON.parse(rawText);
+
+          if (!data || !data.book || typeof data.book.charOffset !== 'number') {
+            showToast('進度檔格式不正確');
+            return;
+          }
+
+          const targetTitle = String(data.book.title || '').trim();
+          const targetOffset = Math.max(0, Math.floor(data.book.charOffset));
+
+          if (data.settings && typeof data.settings === 'object') {
+            if (['white', 'kraft', 'night'].includes(data.settings.theme)) {
+              state.settings.theme = data.settings.theme;
+            }
+            if (typeof data.settings.fontSize === 'number' && data.settings.fontSize >= 12 && data.settings.fontSize <= 22) {
+              state.settings.fontSize = data.settings.fontSize;
+            }
+            if (typeof data.settings.lineHeight === 'number' && [1.3, 1.45, 1.65].includes(data.settings.lineHeight)) {
+              state.settings.lineHeight = data.settings.lineHeight;
+            }
+            saveSettings();
+          }
+
+          const allBooks = await getAllBooksFullFromDB();
+          const matchedBook =
+            allBooks.find(b => b.id === data.book.id) ||
+            allBooks.find(b => b.title === targetTitle);
+
+          if (matchedBook && matchedBook.text) {
+            const clampedOffset = Math.min(matchedBook.text.length, targetOffset);
+            matchedBook.charOffset = clampedOffset;
+            matchedBook.updatedAt = Date.now();
+            await saveBookToDB(matchedBook);
+
+            state.book = {
+              id: matchedBook.id,
+              title: matchedBook.title,
+              rawBuffer: matchedBook.rawBuffer || null,
+              encoding: matchedBook.encoding || 'utf-8',
+              text: matchedBook.text,
+              charOffset: clampedOffset
+            };
+            state.settings.currentBookId = matchedBook.id;
+            saveSettings();
+            state.chapters = parseChapters(state.book.text);
+            closeAllOverlays();
+            applyVisualSettings(true);
+
+            const pct = matchedBook.text.length > 0
+              ? ((clampedOffset / matchedBook.text.length) * 100).toFixed(1)
+              : '0.0';
+            showToast(`已還原《${matchedBook.title}》進度 ${pct}%`);
+          } else {
+            // 書庫中尚未有這本書時，仍可套用顯示設定並提示使用者匯入對應 TXT
+            closeAllOverlays();
+            applyVisualSettings(true);
+            showToast(`進度檔為《${targetTitle || '未知書籍'}》(${targetOffset}字)，請先匯入該 TXT`);
+          }
+        } catch (err) {
+          showToast('讀取進度檔失敗，請確認為有效 JSON');
+        }
+      }
+
       function nextPage() {
         if (isAnyOverlayOpen()) return;
         if (state.currentPageIdx < state.pages.length - 1) {
@@ -1045,6 +1213,7 @@
           });
           state.settings.currentBookId = bookId;
           saveSettings();
+          showToast(`已匯入《${cleanTitle}》`);
         };
         reader.readAsArrayBuffer(file);
       }
@@ -1225,6 +1394,13 @@
           }
         });
 
+        dom.progressInput.addEventListener('change', async (e) => {
+          if (e.target.files && e.target.files[0]) {
+            await importReadingProgress(e.target.files[0]);
+            e.target.value = '';
+          }
+        });
+
         document.getElementById('menu-import').addEventListener('click', () => dom.fileInput.click());
         document.getElementById('menu-books').addEventListener('click', async () => {
           await renderBookList();
@@ -1235,6 +1411,8 @@
           openOverlay(dom.overlayChapters);
         });
         document.getElementById('menu-jump').addEventListener('click', openJumpMenu);
+        document.getElementById('menu-export-progress').addEventListener('click', exportReadingProgress);
+        document.getElementById('menu-import-progress').addEventListener('click', () => dom.progressInput.click());
         document.getElementById('menu-display').addEventListener('click', () => openOverlay(dom.overlayDisplay));
         document.getElementById('menu-pwa').addEventListener('click', () => openOverlay(dom.overlayPwa));
 
